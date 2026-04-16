@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
 import { 
   MetricCard, 
   SalesRevenueChart, 
@@ -74,10 +75,49 @@ const DashboardOverview = () => {
 
   // Aggregated Stats
   const stats = {
-    totalValue: products.reduce((acc, p) => acc + (p.price * p.quantity), 0),
-    stockLevel: products.reduce((acc, p) => acc + p.quantity, 0),
-    avgMargin: products.length > 0 ? (products.reduce((acc, p) => acc + (p.price - p.purchasePrice), 0) / products.length) : 0,
+    totalValue: products.reduce((acc, p) => acc + ((p.price || 0) * (p.quantity || 0)), 0),
+    stockLevel: products.reduce((acc, p) => acc + (p.quantity || 0), 0),
+    avgMargin: products.length > 0 ? (products.reduce((acc, p) => acc + ((p.price || 0) - (p.purchasePrice || 0)), 0) / products.length) : 0,
     winRate: "30%"
+  };
+
+  const exportToExcel = () => {
+    try {
+      // 1. Dashboard Metrics Sheet
+      const metricsData = [
+        { Metric: "Total Current Opportunities", Value: "207" },
+        { Metric: "Current Purchase Value (₹)", Value: stats.totalValue },
+        { Metric: "Average Purchase Value (₹)", Value: stats.avgMargin },
+        { Metric: "Average Win Rate", Value: stats.winRate },
+        { Metric: "Total Stock Level", Value: stats.stockLevel }
+      ];
+      const wsMetrics = XLSX.utils.json_to_sheet(metricsData);
+
+      // 2. Inventory Data Sheet
+      const inventoryData = products.map(p => ({
+        "Product ID": p._id,
+        "Product Name": p.name,
+        "Category": p.category || 'N/A',
+        "Vendor": p.vendor || 'N/A',
+        "Sale Price (₹)": p.price || 0,
+        "Purchase Price (₹)": p.purchasePrice || 0,
+        "Stock Quantity": p.quantity || 0,
+        "Total Stock Value (₹)": (p.price || 0) * (p.quantity || 0)
+      }));
+      const wsInventory = XLSX.utils.json_to_sheet(inventoryData);
+
+      // 3. Build Workbook
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, wsMetrics, "Dashboard Metrics");
+      XLSX.utils.book_append_sheet(wb, wsInventory, "Inventory Data");
+
+      // 4. Save File
+      XLSX.writeFile(wb, "FastTrack_Inventory_Report.xlsx");
+      addToast("Exported to Excel successfully", "success");
+    } catch (error) {
+      console.error("Export Error:", error);
+      addToast("Failed to generate Excel file", "error");
+    }
   };
 
   return (
@@ -88,7 +128,11 @@ const DashboardOverview = () => {
             <p className="text-text-secondary text-sm">Industrial Logistics & Supply Chain Terminal</p>
           </div>
           <div className="flex gap-4">
-            <button className="p-2.5 bg-card border border-border text-text-secondary rounded-xl hover:text-accent transition-all">
+            <button 
+              onClick={exportToExcel}
+              className="p-2.5 bg-card border border-border text-text-secondary rounded-xl hover:text-accent transition-all cursor-pointer hover:border-accent/40 shadow-lg shadow-black/20"
+              title="Download Full Excel Report"
+            >
               <Download size={20} />
             </button>
             <button 

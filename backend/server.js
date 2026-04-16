@@ -11,10 +11,13 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
+// Root Health Check Route
+app.get('/', (req, res) => {
+  res.json({ message: 'FAST TRACK Industrial Logistics API is online.' });
+});
+
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/products', require('./routes/products'));
-
-// Additional Feature Routes
 app.use('/api/activities', require('./routes/activities'));
 // app.use('/api/customers', require('./routes/customers'));
 // app.use('/api/vehicles', require('./routes/vehicles'));

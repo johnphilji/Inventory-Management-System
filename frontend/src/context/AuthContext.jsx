@@ -15,7 +15,7 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       axios.defaults.headers.common['x-auth-token'] = token;
       localStorage.setItem('token', token);
-      loadUser();
+      if (!user) loadUser();
     } else {
       delete axios.defaults.headers.common['x-auth-token'];
       localStorage.removeItem('token');
@@ -37,12 +37,20 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (formData) => {
     const res = await axios.post('/api/auth/register', formData);
-    setToken(res.data.token);
+    const newToken = res.data.token;
+    setToken(newToken);
+    axios.defaults.headers.common['x-auth-token'] = newToken;
+    localStorage.setItem('token', newToken);
+    await loadUser();
   };
 
   const login = async (formData) => {
     const res = await axios.post('/api/auth/login', formData);
-    setToken(res.data.token);
+    const newToken = res.data.token;
+    setToken(newToken);
+    axios.defaults.headers.common['x-auth-token'] = newToken;
+    localStorage.setItem('token', newToken);
+    await loadUser();
   };
 
   const logout = () => {
